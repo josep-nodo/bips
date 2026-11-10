@@ -16,7 +16,6 @@ from deps.bitcoin_test.psbt import (
     PSBT_IN_OUTPUT_INDEX,
     PSBT_IN_PREVIOUS_TXID,
     PSBT_IN_SIGHASH_TYPE,
-    PSBT_IN_WITNESS_UTXO,
     PSBT_OUT_SCRIPT,
 )
 from deps.dleq import dleq_verify_proof
@@ -24,9 +23,9 @@ from secp256k1lab.secp256k1 import GE
 
 from .bip352_crypto import compute_silent_payment_output_script
 from .inputs import (
+    _script_pubkey_from_psbt_input,
     collect_input_ecdh_and_pubkey,
     is_input_eligible,
-    parse_witness_utxo,
     pubkey_from_eligible_input,
 )
 from .psbt_bip375 import (
@@ -233,7 +232,7 @@ def validate_dleq_proof(
 ) -> Tuple[bool, str]:
     """
     Verify a DLEQ proof for silent payments
-    
+
     Checks:
     - ECDH share and DLEQ proof lengths
     - Verify DLEQ proof correctness
@@ -284,11 +283,9 @@ def validate_input_eligibility(psbt: PSBT) -> Tuple[bool, str]:
 
     # Check segwit version restrictions
     for i, input_map in enumerate(psbt.i):
-        if PSBT_IN_WITNESS_UTXO in input_map:
-            witness_utxo = input_map[PSBT_IN_WITNESS_UTXO]
-            script = parse_witness_utxo(witness_utxo)
-            if is_segwit_v2_or_later(script):
-                return False, f"Input {i} uses segwit version > 1 with silent payments"
+        script = _script_pubkey_from_psbt_input(input_map)
+        if script is not None and is_segwit_v2_or_later(script):
+            return False, f"Input {i} uses segwit version > 1 with silent payments"
 
     # Check SIGHASH_ALL requirement - PSBT_IN_SIGHASH_TYPE is optional, but if set it must be SIGHASH_ALL when SP outputs are present
     for i, input_map in enumerate(psbt.i):
@@ -323,15 +320,18 @@ def validate_output_scripts(psbt: PSBT) -> Tuple[bool, str]:
             output_index = struct.unpack("<I", output_index_bytes)[0]
             outpoints.append(COutPoint(txid_int, output_index))
 
+    # Silent payment codes sorted lexicographically, ties broken by output index
+    sp_outputs = [
+        (output_map[PSBT_OUT_SP_V0_INFO], output_idx, output_map)
+        for output_idx, output_map in enumerate(psbt.o)
+        if PSBT_OUT_SP_V0_INFO in output_map
+    ]
+    sp_outputs.sort(key=lambda entry: (entry[0], entry[1]))
+
     # Track k values per scan key
     scan_key_k_values = {}
 
-    # Validate each SP output
-    for output_idx, output_map in enumerate(psbt.o):
-        if PSBT_OUT_SP_V0_INFO not in output_map:
-            continue  # Skip non-SP outputs
-
-        sp_info = output_map[PSBT_OUT_SP_V0_INFO]
+    for sp_info, output_idx, output_map in sp_outputs:
         scan_pubkey_bytes = sp_info[:33]
         spend_pubkey_bytes = sp_info[33:]
 

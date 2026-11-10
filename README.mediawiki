@@ -1335,7 +1335,7 @@ users (see also: [https://en.bitcoin.it/wiki/Economic_majority economic majority
 | [[bip-0375.mediawiki|375]]
 | Applications
 | Sending Silent Payments with PSBTs
-| Andrew Toth, Ava Chow, josibake
+| Andrew Toth, Ava Chow, josibake, macgyver
 | Specification
 | Draft
 |-
@@ -1451,6 +1451,13 @@ users (see also: [https://en.bitcoin.it/wiki/Economic_majority economic majority
 | Specification
 | Draft
 |-
+| [[bip-0394.mediawiki|394]]
+| Applications
+| rawtr() Output Script Descriptors
+| jeanpablojp
+| Specification
+| Draft
+|-
 | [[bip-0431.mediawiki|431]]
 | Applications
 | Topology Restrictions for Pinning
@@ -1545,6 +1552,13 @@ users (see also: [https://en.bitcoin.it/wiki/Economic_majority economic majority
 | [[bip-0459.mediawiki|459]]
 | Applications
 | DahLIAS fully aggregated signatures for secp256k1
+| Fabian Jahr
+| Specification
+| Draft
+|-
+| [[bip-0460.mediawiki|460]]
+| Consensus (soft fork)
+| CISA for Taproot Key Path Spends in SegWit v2
 | Fabian Jahr
 | Specification
 | Draft
